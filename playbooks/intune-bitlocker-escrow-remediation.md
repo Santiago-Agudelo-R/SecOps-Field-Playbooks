@@ -1,7 +1,7 @@
 # PB-END-001: Intune MDM Sync & BitLocker Key Escrow Remediation
 
 - **Document ID:** PB-END-001
-- **Version:** 1.0.0
+- **Version:** 1.0.1
 - **Domain:** Endpoint Security & Compliance (Microsoft Intune / Entra ID)
 - **Target OS:** Windows 10 / Windows 11 Enterprise
 
@@ -16,7 +16,7 @@ Enterprise endpoints managed via Microsoft Intune (Cloud Native or Hybrid Entra 
 - Volume `C:` is either unencrypted, stuck in `Encryption In Progress`, or encrypted locally without a recovery password escrowed to Microsoft Entra ID.
 - Windows Event Viewer (`Microsoft-Windows-BitLocker-API/Management`) logs:
   - **Event ID 851:** Failed to enable Silent Encryption (Group Policy / MDM conflict or incompatible DMA/PCR7 state).
-  - **Event ID 845:** Recovery key backup to Entra ID failed (network/TLS proxy block or stale Primary Refresh Token).
+  - **Event ID 846:** Failed to backup BitLocker drive encryption recovery information for volume `C:` to your Microsoft Entra ID (network/TLS proxy block or stale Primary Refresh Token).
 - Device Management logs (`Microsoft-Windows-DeviceManagement-Enterprise-Diagnostics-Provider/Admin`) show OMA-DM sync failures (`0x87d1fde8` or `0x80190190`).
 
 ---
@@ -35,14 +35,14 @@ Silent BitLocker deployment via Intune relies on four sequential layers:
 [Entra ID Device Registration + PRT Token]
              │
              ▼
-[Key Escrow to Entra ID + Intune Compliance Evaluation]
+[Key Escrow to Entra ID (Event ID 845) + Intune Compliance Evaluation]
 ```
 
 | Layer | Component | Typical Root Cause |
 | :--- | :--- | :--- |
 | **Hardware / Firmware** | TPM 2.0 + PCR7 / Secure Boot | TPM not ready, CSM/Legacy BIOS active, or unallowed DMA devices blocking PCR7 binding. |
 | **Policy Conflict** | Registry `HKLM\SOFTWARE\Policies\Microsoft\FVE` | Legacy GPO settings (`UseAdvancedStartup`) conflicting with Intune silent enablement (`RequireDeviceEncryption`). |
-| **Identity / PRT** | `dsregcmd /status` | Broken Entra join state (`AzureAdJoined: NO` or `AzureAdPrt: NO`) preventing key backup to Graph endpoint. |
+| **Identity / PRT** | `dsregcmd /status` | Broken Entra join state (`AzureAdJoined: NO` or `AzureAdPrt: NO`) preventing key backup (`Event ID 846`). |
 | **Encryption State** | `manage-bde` / `Get-BitLockerVolume` | Drive encrypted manually before enrollment without `RecoveryPassword` protector or with `ProtectionStatus: Off` (suspended). |
 
 ---
@@ -75,7 +75,7 @@ $vol.KeyProtector | Select-Object KeyProtectorId, KeyProtectorType
 
 ### Step 3.4: Inspect BitLocker & MDM Event Logs for Root Cause
 ```powershell
-# Query last 15 BitLocker Management errors/warnings
+# Query last 15 BitLocker Management errors/warnings (e.g. Event ID 846 escrow failure or 851 silent encryption failure)
 Get-WinEvent -LogName "Microsoft-Windows-BitLocker-API/Management" -MaxEvents 15 |
     Where-Object { $_.LevelDisplayName -in @('Error', 'Warning') } |
     Select-Object TimeCreated, Id, LevelDisplayName, Message
@@ -97,9 +97,10 @@ Get-ItemProperty -Path "HKLM:\SOFTWARE\Policies\Microsoft\FVE" -ErrorAction Sile
 ## 4. Remediation & Recovery
 
 ### Scenario A: Protection Suspended (`FullyEncrypted` + `ProtectionStatus: Off`)
-Resume protection immediately and trigger an Intune sync:
+Resume protection immediately and trigger an Intune OMA-DM sync:
 ```powershell
 Resume-BitLocker -MountPoint $env:SystemDrive
+Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-ScheduledTask
 ```
 
 ### Scenario B: Drive Encrypted Locally, Missing `RecoveryPassword` or Not Escrowed to Entra ID
@@ -123,8 +124,9 @@ BackupToAAD-BitLockerKeyProtector -MountPoint $mount -KeyProtectorId $recProtect
 
 ### Scenario C: Conflicting Legacy GPO Blocking Silent Encryption
 1. Remove the endpoint from the legacy on-premises BitLocker GPO scope (or configure `MDMWinsOverGP` via the Policy CSP `/Vendor/MSFT/Policy/Config/ControlPolicyConflict/MDMWinsOverGP = 1`).
-2. Clear stale FVE policy values and force an OMA-DM sync:
+2. Clear the stale Group Policy FVE registry key and trigger an immediate OMA-DM sync:
 ```powershell
+Remove-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\FVE" -Recurse -Force -ErrorAction SilentlyContinue
 Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-ScheduledTask
 ```
 
@@ -133,12 +135,12 @@ Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-Schedu
 ## 5. Verification & Post-Incident Validation
 
 1. **Local Event Confirmation:**
-   Verify Event ID **846** (*"The BitLocker volume recovery information for volume C: was backed up successfully to your Microsoft Entra ID"*) in `Microsoft-Windows-BitLocker-API/Management`:
+   Verify Event ID **845** (*"The BitLocker volume recovery information for volume C: was backed up successfully to your Microsoft Entra ID"*) and confirm no subsequent Event ID **846** (backup failure) was logged in `Microsoft-Windows-BitLocker-API/Management`:
    ```powershell
    Get-WinEvent -FilterHashtable @{
        LogName = 'Microsoft-Windows-BitLocker-API/Management'
-       Id      = 846
-   } -MaxEvents 1
+       Id      = 845, 846
+   } -MaxEvents 5 | Select-Object TimeCreated, Id, LevelDisplayName, Message
    ```
 2. **Entra ID & Intune Portal Confirmation:**
    - Navigate to **Microsoft Intune Admin Center > Devices > All devices > [Device Name] > Recovery keys** and confirm the `Key ID` matches `$recProtector.KeyProtectorId`.
@@ -148,7 +150,7 @@ Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-Schedu
 
 ## 6. Escalation & RCA Criteria
 
-If remediation fails, collect the following diagnostic bundle before escalating to L4 Endpoint Engineering:
+If remediation fails, collect the following diagnostic bundle before escalating to Endpoint Engineering:
 - Exported MDM Diagnostic Report: `MdmDiagnosticsTool.exe -area "DeviceEnrollment;DeviceProvisioning;TPM" -zip C:\Temp\MDMDiag.zip`
 - Output of `dsregcmd /status` and `Get-Tpm`
 - Export of `Microsoft-Windows-BitLocker-API/Management.evtx`

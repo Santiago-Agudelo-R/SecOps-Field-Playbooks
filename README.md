@@ -1,6 +1,6 @@
 # SecOps-Field-Playbooks
 
-Enterprise L3 operational runbooks and root-cause analysis (RCA) playbooks for Incident Response, Microsoft Intune, Hybrid Active Directory, and Endpoint Detection & Response (EDR).
+Operational runbooks and root-cause analysis (RCA) playbooks for Incident Response, Microsoft Intune, Hybrid Active Directory, and Endpoint Detection & Response (EDR).
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/Santiago-Agudelo-R/SecOps-Field-Playbooks?color=success)](https://github.com/Santiago-Agudelo-R/SecOps-Field-Playbooks/releases)
@@ -10,7 +10,7 @@ Enterprise L3 operational runbooks and root-cause analysis (RCA) playbooks for I
 
 ## Overview
 
-During high-severity infrastructure incidents or security operations escalations, engineers require deterministic, repeatable diagnostic procedures rather than ad-hoc troubleshooting. `SecOps-Field-Playbooks` contains production-tested L3 operational runbooks covering endpoint encryption compliance, hybrid directory synchronization, and EDR containment verification across distributed enterprise environments.
+During infrastructure incidents or security operations escalations, engineers require deterministic, repeatable diagnostic procedures rather than ad-hoc troubleshooting. `SecOps-Field-Playbooks` contains operational runbooks covering endpoint encryption compliance, hybrid directory synchronization, and EDR containment verification across distributed enterprise environments.
 
 All hostnames, IPv4 addresses, tenant identifiers, and domain names strictly follow RFC 5737 (`192.0.2.0/24`, `198.51.100.0/24`) and RFC 2606 (`contoso.com`, `corp.contoso.com`) anonymization standards.
 
@@ -35,7 +35,7 @@ Every playbook in this repository follows a standardized six-stage engineering f
 3. **Diagnostic Triage Procedure:** Step-by-step non-destructive verification commands (PowerShell, CLI, Event Viewer channels) to isolate the root cause.
 4. **Remediation & Recovery:** Deterministic fix actions for local hosts and mass deployment (Intune Proactive Remediations / GPO / RTR).
 5. **Verification & Post-Incident Validation:** Positive confirmation checks ensuring telemetry, compliance state, or replication convergence is restored.
-6. **Escalation & RCA Criteria:** Evidence collection requirements before escalating to vendor support or L4 architecture teams.
+6. **Escalation & RCA Criteria:** Evidence collection requirements before escalating to vendor support or engineering teams.
 
 ---
 
