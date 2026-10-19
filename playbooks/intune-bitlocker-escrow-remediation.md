@@ -123,10 +123,21 @@ BackupToAAD-BitLockerKeyProtector -MountPoint $mount -KeyProtectorId $recProtect
 ```
 
 ### Scenario C: Conflicting Legacy GPO Blocking Silent Encryption
-1. Remove the endpoint from the legacy on-premises BitLocker GPO scope (or configure `MDMWinsOverGP` via the Policy CSP `/Vendor/MSFT/Policy/Config/ControlPolicyConflict/MDMWinsOverGP = 1`).
-2. Clear the stale Group Policy FVE registry key and trigger an immediate OMA-DM sync:
+1. Back up the current `FVE` registry key before making changes:
 ```powershell
-Remove-Item -Path "HKLM:\SOFTWARE\Policies\Microsoft\FVE" -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path "C:\Temp" -Force | Out-Null
+reg export "HKLM\SOFTWARE\Policies\Microsoft\FVE" "C:\Temp\FVE_backup.reg" /y
+```
+2. Remove the endpoint from the legacy on-premises BitLocker GPO scope (or configure `MDMWinsOverGP` via the Policy CSP `/Vendor/MSFT/Policy/Config/ControlPolicyConflict/MDMWinsOverGP = 1`) and refresh Group Policy:
+```powershell
+gpupdate /force
+```
+3. Remove only the conflicting legacy startup/PIN values (preserving Intune MDM FVE settings) and trigger an immediate OMA-DM sync:
+```powershell
+$fvePath = "HKLM:\SOFTWARE\Policies\Microsoft\FVE"
+foreach ($prop in @('UseAdvancedStartup', 'UseTPMPIN', 'EnableBDEWithNoTPM')) {
+    Remove-ItemProperty -Path $fvePath -Name $prop -ErrorAction SilentlyContinue
+}
 Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-ScheduledTask
 ```
 
