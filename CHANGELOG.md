@@ -1,9 +1,15 @@
-# Changelog
+﻿# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.1.0] - 2026-10-20
+
+### Added
+- `PB-CLOUD-004` (`playbooks/aws-ssm-vpc-iam-endpoint-triage.md`): Operational runbook for diagnosing AWS Systems Manager (SSM) lost connectivity, IMDSv2 token/proxy conflicts, IAM Instance Profile permissions, and VPC Interface Endpoints.
+- `PB-SOC-005` (`playbooks/sentinelone-defender-alert-triage-and-chain-of-custody.md`): SOC analyst playbook covering SentinelOne Deep Visibility (S1QL) vs. Defender XDR (KQL) alert validation, false-positive exclusion governance, legal/regulated chain-of-custody timelines, and IT Director KPI reporting templates.
 
 ## [1.0.1] - 2026-10-18
 

@@ -1,4 +1,4 @@
-# SecOps-Field-Playbooks
+﻿# SecOps-Field-Playbooks
 
 Operational runbooks and root-cause analysis (RCA) playbooks for Incident Response, Microsoft Intune, Hybrid Active Directory, and Endpoint Detection & Response (EDR).
 
@@ -23,6 +23,8 @@ All hostnames, IPv4 addresses, tenant identifiers, and domain names strictly fol
 | [**PB-END-001**](playbooks/intune-bitlocker-escrow-remediation.md) | Intune MDM Sync & BitLocker Key Escrow Remediation | Endpoint Security & Compliance | Microsoft Intune, Entra ID, BitLocker, TPM 2.0, Windows Event Logs |
 | [**PB-ID-002**](playbooks/active-directory-replication-rpc-triage.md) | Hybrid AD DS Replication, RPC 1722 & Entra Connect Triage | Hybrid Identity & Directory Services | Windows Server AD DS, `repadmin`, `dcdiag`, DNS, Entra Connect |
 | [**PB-SEC-003**](playbooks/edr-sensor-telemetry-containment-triage.md) | EDR Sensor Health, Telemetry Loss & Network Containment Validation | Security Operations & Incident Response | Microsoft Defender for Endpoint (MDE), CrowdStrike Falcon, WFP |
+| [**PB-CLOUD-004**](playbooks/aws-ssm-vpc-iam-endpoint-triage.md) | AWS Systems Manager (SSM), VPC Endpoints & IAM Instance Profile Triage | Cloud Infrastructure & SecOps | AWS EC2, Systems Manager, VPC Endpoints, IAM, IMDSv2 |
+| [**PB-SOC-005**](playbooks/sentinelone-defender-alert-triage-and-chain-of-custody.md) | SentinelOne & Defender XDR Alert Triage, Chain-of-Custody & Executive Reporting | SOC Operations & MSSP Co-Management | SentinelOne (S1QL), Microsoft Defender XDR (KQL), M365 |
 
 ---
 
