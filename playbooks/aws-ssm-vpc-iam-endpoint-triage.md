@@ -148,6 +148,6 @@ aws iam attach-role-policy \
 
 ## 6. Escalation & RCA Criteria
 
-Before escalating to Cloud Networking / L4 AWS Infrastructure:
+Before escalating to Cloud Infrastructure Engineering:
 - Execute `ssm-cli get-diagnostics --output table` on the affected host and attach the output.
 - Include VPC Flow Logs for the instance Primary ENI (`eni-0123456789abcdef0`) filtering destination port `443` (`REJECT` vs `ACCEPT` records).

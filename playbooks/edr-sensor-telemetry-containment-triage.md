@@ -9,7 +9,7 @@
 
 ## 1. Incident Scope & Symptoms
 
-During active incident response or routine SOC posture monitoring, two critical operational scenarios require immediate L3 intervention:
+During active incident response or routine SOC posture monitoring, two critical operational scenarios require immediate intervention:
 1. **Sensor Telemetry Loss (Silent Host):** An endpoint stops reporting process/network telemetry to Microsoft Defender for Endpoint (MDE) or CrowdStrike Falcon for >24 hours while remaining active on the corporate network (`192.0.2.0/24`), creating a blind spot or indicating defense evasion (`T1562.001`).
 2. **Containment Verification Failure:** A compromised host (`WKSTN-MKT-12.corp.contoso.com`, `192.0.2.45`) is placed into **Network Containment / Device Isolation** in the EDR console, but the SOC requires verification that lateral SMB/RDP/WinRM traffic is strictly blocked at the Windows Filtering Platform (WFP) layer while preserving EDR cloud heartbeat channels.
 
