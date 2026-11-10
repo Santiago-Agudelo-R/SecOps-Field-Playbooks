@@ -1,9 +1,20 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.1.1] - 2026-11-09
+
+### Changed
+- Marked `PB-CLOUD-004` and `PB-SOC-005` as self-directed lab playbooks (not production-validated) and added a `Basis` column to the catalog.
+- Labeled SentinelOne queries in `PB-SOC-005` as S1QL 1.0 syntax.
+
+### Fixed
+- Replaced a public IP address in `PB-CLOUD-004` with RFC 5737 documentation range `203.0.113.0/24`.
+- Replaced an invalid EC2 instance ID (non-hex characters) with a valid example ID.
+- `PB-END-001`: `Get-WinEvent` now uses the BitLocker channel name `Microsoft-Windows-BitLocker/BitLocker Management` (the Event Viewer path BitLocker-API > Management is a display name), and the evidence bundle points to the correct `.evtx` file.
 
 ## [1.1.0] - 2026-10-20
 

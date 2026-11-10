@@ -1,9 +1,12 @@
 # PB-SOC-005: SentinelOne & Defender XDR Alert Triage, Chain-of-Custody & Executive Reporting
 
 - **Document ID:** PB-SOC-005
-- **Version:** 1.1.0
+- **Version:** 1.1.1
 - **Domain:** SOC Operations, MSSP Co-Management & Legal/Regulated Chain of Custody
 - **Platforms:** SentinelOne Singularity XDR, Microsoft Defender XDR, Microsoft Sentinel, Microsoft 365
+- **Validation:** Self-directed lab (not production-validated)
+
+> **Validation status: self-directed lab.** This playbook was built from personal lab work and vendor documentation. It has not yet been validated in a production environment. Feedback and corrections are welcome via Issues.
 
 ---
 
@@ -21,7 +24,7 @@ In regulated industries (Legal Practices, Financial Services, Healthcare), SOC a
 
 ### 2.1 Hunting Encoded PowerShell & Suspicious Child Processes (`T1059.001`)
 
-**SentinelOne Deep Visibility (S1QL v2.0):**
+**SentinelOne Deep Visibility (S1QL 1.0 syntax):**
 ```sql
 EventType = "Process Creation"
 AND SrcProcName In Contains Anycase ("winword.exe", "excel.exe", "outlook.exe", "wmiprvse.exe")
@@ -40,7 +43,7 @@ DeviceProcessEvents
 
 ### 2.2 Hunting Credential Dumping & LSASS Memory Access (`T1003.001`)
 
-**SentinelOne Deep Visibility (S1QL v2.0):**
+**SentinelOne Deep Visibility (S1QL 1.0 syntax):**
 ```sql
 (EventType = "Process Creation" AND TgtProcCmdLine Contains Anycase ("comsvcs.dll", "MiniDump", "sekurlsa", "procdump"))
 OR (EventType = "Cross Process" AND TgtProcName = "lsass.exe" AND SrcProcSignedStatus != "signed")

@@ -1,9 +1,12 @@
 # PB-CLOUD-004: AWS Systems Manager (SSM), VPC Endpoints & IAM Instance Profile Triage
 
 - **Document ID:** PB-CLOUD-004
-- **Version:** 1.1.0
+- **Version:** 1.1.1
 - **Domain:** Cloud Infrastructure & SecOps (AWS EC2 / Systems Manager / IAM / VPC)
 - **Target OS:** Windows Server 2019/2022 & Amazon Linux 2023 / Ubuntu LTS
+- **Validation:** Self-directed lab (not production-validated)
+
+> **Validation status: self-directed lab.** This playbook was built from personal lab work and vendor documentation. It has not yet been validated in a production environment. Feedback and corrections are welcome via Issues.
 
 ---
 
@@ -15,8 +18,8 @@ Managed EC2 instances deployed in private or isolated VPC subnets (`10.24.16.0/2
 - AWS Systems Manager Fleet Manager shows `PingStatus: ConnectionLost` or the instance is completely absent from Managed Nodes.
 - Attempting to start an SSM Session fails with `TargetNotConnected`.
 - Instance system logs (`C:\ProgramData\Amazon\SSM\Logs\amazon-ssm-agent.log` or `/var/log/amazon/ssm/amazon-ssm-agent.log`) display:
-  - `RequestError: send request failed caused by: Post "https://ssm.us-east-1.amazonaws.com/": dial tcp 52.46.132.10:443: i/o timeout`
-  - `AccessDeniedException: User: arn:aws:sts::111122223333:assumed-role/CorpEC2Role/i-0a1b2c3d4e5f6g7h8 is not authorized to perform: ssm:UpdateInstanceInformation`
+  - `RequestError: send request failed caused by: Post "https://ssm.us-east-1.amazonaws.com/": dial tcp 203.0.113.10:443: i/o timeout`
+  - `AccessDeniedException: User: arn:aws:sts::111122223333:assumed-role/CorpEC2Role/i-0a1b2c3d4e5f67890 is not authorized to perform: ssm:UpdateInstanceInformation`
   - `EC2RoleRequestError: no EC2 instance role found` or IMDSv2 token retrieval failure (`HTTP 401 Unauthorized` on `169.254.169.254`).
 
 ---
@@ -54,13 +57,13 @@ Before accessing the host, verify the EC2 instance metadata options, attached IA
 ```bash
 # Verify IAM Instance Profile and IMDSv2 configuration
 aws ec2 describe-instances \
-    --instance-ids i-0a1b2c3d4e5f6g7h8 \
+    --instance-ids i-0a1b2c3d4e5f67890 \
     --query "Reservations[0].Instances[0].{State:State.Name,SubnetId:SubnetId,VpcId:VpcId,IamProfile:IamInstanceProfile.Arn,MetadataOptions:MetadataOptions}" \
     --output json
 
 # Check last known SSM heartbeat status
 aws ssm describe-instance-information \
-    --filters "Key=InstanceIds,Values=i-0a1b2c3d4e5f6g7h8" \
+    --filters "Key=InstanceIds,Values=i-0a1b2c3d4e5f67890" \
     --output json
 ```
 
@@ -135,13 +138,13 @@ aws iam attach-role-policy \
 1. **Verify SSM Heartbeat Online:**
    ```bash
    aws ssm describe-instance-information \
-       --filters "Key=InstanceIds,Values=i-0a1b2c3d4e5f6g7h8" \
+       --filters "Key=InstanceIds,Values=i-0a1b2c3d4e5f67890" \
        --query "InstanceInformationList[0].{InstanceId:InstanceId,PingStatus:PingStatus,AgentVersion:AgentVersion,LastPingDateTime:LastPingDateTime}"
    ```
    Confirm `PingStatus` returns `Online`.
 2. **Validate Session Manager Control Channel:**
    ```bash
-   aws ssm start-session --target i-0a1b2c3d4e5f6g7h8
+   aws ssm start-session --target i-0a1b2c3d4e5f67890
    ```
 
 ---

@@ -1,4 +1,4 @@
-﻿# SecOps-Field-Playbooks
+# SecOps-Field-Playbooks
 
 Operational runbooks and root-cause analysis (RCA) playbooks for Incident Response, Microsoft Intune, Hybrid Active Directory, and Endpoint Detection & Response (EDR).
 
@@ -12,19 +12,23 @@ Operational runbooks and root-cause analysis (RCA) playbooks for Incident Respon
 
 During infrastructure incidents or security operations escalations, engineers require deterministic, repeatable diagnostic procedures rather than ad-hoc troubleshooting. `SecOps-Field-Playbooks` contains operational runbooks covering endpoint encryption compliance, hybrid directory synchronization, and EDR containment verification across distributed enterprise environments.
 
-All hostnames, IPv4 addresses, tenant identifiers, and domain names strictly follow RFC 5737 (`192.0.2.0/24`, `198.51.100.0/24`) and RFC 2606 (`contoso.com`, `corp.contoso.com`) anonymization standards.
+All hostnames, IPv4 addresses, tenant identifiers, and domain names strictly follow RFC 5737 (`192.0.2.0/24`, `198.51.100.0/24`, `203.0.113.0/24`), RFC 1918 private ranges, and RFC 2606 (`contoso.com`, `corp.contoso.com`) anonymization standards.
 
 ---
 
 ## Playbook Catalog
 
-| Playbook ID | Title | Primary Domain | Target Technologies |
-| :--- | :--- | :--- | :--- |
-| [**PB-END-001**](playbooks/intune-bitlocker-escrow-remediation.md) | Intune MDM Sync & BitLocker Key Escrow Remediation | Endpoint Security & Compliance | Microsoft Intune, Entra ID, BitLocker, TPM 2.0, Windows Event Logs |
-| [**PB-ID-002**](playbooks/active-directory-replication-rpc-triage.md) | Hybrid AD DS Replication, RPC 1722 & Entra Connect Triage | Hybrid Identity & Directory Services | Windows Server AD DS, `repadmin`, `dcdiag`, DNS, Entra Connect |
-| [**PB-SEC-003**](playbooks/edr-sensor-telemetry-containment-triage.md) | EDR Sensor Health, Telemetry Loss & Network Containment Validation | Security Operations & Incident Response | Microsoft Defender for Endpoint (MDE), CrowdStrike Falcon, WFP |
-| [**PB-CLOUD-004**](playbooks/aws-ssm-vpc-iam-endpoint-triage.md) | AWS Systems Manager (SSM), VPC Endpoints & IAM Instance Profile Triage | Cloud Infrastructure & SecOps | AWS EC2, Systems Manager, VPC Endpoints, IAM, IMDSv2 |
-| [**PB-SOC-005**](playbooks/sentinelone-defender-alert-triage-and-chain-of-custody.md) | SentinelOne & Defender XDR Alert Triage, Chain-of-Custody & Executive Reporting | SOC Operations & MSSP Co-Management | SentinelOne (S1QL), Microsoft Defender XDR (KQL), M365 |
+| Playbook ID | Title | Primary Domain | Target Technologies | Basis |
+| :--- | :--- | :--- | :--- | :--- |
+| [**PB-END-001**](playbooks/intune-bitlocker-escrow-remediation.md) | Intune MDM Sync & BitLocker Key Escrow Remediation | Endpoint Security & Compliance | Microsoft Intune, Entra ID, BitLocker, TPM 2.0, Windows Event Logs | Field experience |
+| [**PB-ID-002**](playbooks/active-directory-replication-rpc-triage.md) | Hybrid AD DS Replication, RPC 1722 & Entra Connect Triage | Hybrid Identity & Directory Services | Windows Server AD DS, `repadmin`, `dcdiag`, DNS, Entra Connect | Field experience |
+| [**PB-SEC-003**](playbooks/edr-sensor-telemetry-containment-triage.md) | EDR Sensor Health, Telemetry Loss & Network Containment Validation | Security Operations & Incident Response | Microsoft Defender for Endpoint (MDE), CrowdStrike Falcon, WFP | Field experience |
+| [**PB-CLOUD-004**](playbooks/aws-ssm-vpc-iam-endpoint-triage.md) | AWS Systems Manager (SSM), VPC Endpoints & IAM Instance Profile Triage | Cloud Infrastructure & SecOps | AWS EC2, Systems Manager, VPC Endpoints, IAM, IMDSv2 | Self-directed lab |
+| [**PB-SOC-005**](playbooks/sentinelone-defender-alert-triage-and-chain-of-custody.md) | SentinelOne & Defender XDR Alert Triage, Chain-of-Custody & Executive Reporting | SOC Operations & MSSP Co-Management | SentinelOne (S1QL), Microsoft Defender XDR (KQL), M365 | Self-directed lab |
+
+---
+
+**Basis:** *Field experience* playbooks come from day-to-day work in enterprise environments. *Self-directed lab* playbooks come from personal lab work and vendor documentation, and are marked as not yet production-validated.
 
 ---
 

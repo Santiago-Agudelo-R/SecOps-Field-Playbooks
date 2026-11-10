@@ -1,7 +1,7 @@
 # PB-END-001: Intune MDM Sync & BitLocker Key Escrow Remediation
 
 - **Document ID:** PB-END-001
-- **Version:** 1.0.1
+- **Version:** 1.0.2
 - **Domain:** Endpoint Security & Compliance (Microsoft Intune / Entra ID)
 - **Target OS:** Windows 10 / Windows 11 Enterprise
 
@@ -76,7 +76,7 @@ $vol.KeyProtector | Select-Object KeyProtectorId, KeyProtectorType
 ### Step 3.4: Inspect BitLocker & MDM Event Logs for Root Cause
 ```powershell
 # Query last 15 BitLocker Management errors/warnings (e.g. Event ID 846 escrow failure or 851 silent encryption failure)
-Get-WinEvent -LogName "Microsoft-Windows-BitLocker-API/Management" -MaxEvents 15 |
+Get-WinEvent -LogName "Microsoft-Windows-BitLocker/BitLocker Management" -MaxEvents 15 |
     Where-Object { $_.LevelDisplayName -in @('Error', 'Warning') } |
     Select-Object TimeCreated, Id, LevelDisplayName, Message
 
@@ -149,7 +149,7 @@ Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-Schedu
    Verify Event ID **845** (*"The BitLocker volume recovery information for volume C: was backed up successfully to your Microsoft Entra ID"*) and confirm no subsequent Event ID **846** (backup failure) was logged in `Microsoft-Windows-BitLocker-API/Management`:
    ```powershell
    Get-WinEvent -FilterHashtable @{
-       LogName = 'Microsoft-Windows-BitLocker-API/Management'
+       LogName = 'Microsoft-Windows-BitLocker/BitLocker Management'
        Id      = 845, 846
    } -MaxEvents 5 | Select-Object TimeCreated, Id, LevelDisplayName, Message
    ```
@@ -164,4 +164,4 @@ Get-ScheduledTask | Where-Object { $_.TaskName -eq 'PushLaunch' } | Start-Schedu
 If remediation fails, collect the following diagnostic bundle before escalating to Endpoint Engineering:
 - Exported MDM Diagnostic Report: `MdmDiagnosticsTool.exe -area "DeviceEnrollment;DeviceProvisioning;TPM" -zip C:\Temp\MDMDiag.zip`
 - Output of `dsregcmd /status` and `Get-Tpm`
-- Export of `Microsoft-Windows-BitLocker-API/Management.evtx`
+- Export of `C:\Windows\System32\winevt\Logs\Microsoft-Windows-BitLocker%4BitLocker Management.evtx`
