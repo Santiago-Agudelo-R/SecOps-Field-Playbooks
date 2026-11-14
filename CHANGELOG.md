@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-11-13
+
+### Fixed
+- `PB-SEC-006`: Non-interactive sign-ins are now queried through the beta endpoint (`Get-MgBetaAuditLogSignIn`); the v1.0 cmdlet returns interactive sign-ins only, so token replay was not visible.
+- `PB-SEC-006`: Replaced the non-existent audit operation `Add-OAuth2PermissionGrant` with `Add delegated permission grant`, and scoped the search with `-UserIds`.
+- `PB-SEC-006`: Replaced the deprecated `Get-MessageTrace` with `Get-MessageTraceV2`.
+- `PB-VULN-007`: The KQL query sorted by `ExposureLevel` after projecting it away, which fails; the column is now kept.
+- `PB-VULN-007`: Corrected the NIST CSF 2.0 reference from `PR.IP` (CSF 1.1) to `PR.PS`, fixed a typo, and aligned the metadata header with the other playbooks.
+
 ## [1.2.0] - 2026-11-13
 
 ### Added

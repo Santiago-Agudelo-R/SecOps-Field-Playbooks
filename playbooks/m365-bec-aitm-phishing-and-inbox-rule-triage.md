@@ -1,7 +1,7 @@
 # PB-SEC-006: Business Email Compromise (BEC), AiTM Session Hijack & Inbox Rule Triage
 
 - **Document ID:** PB-SEC-006
-- **Version:** 1.2.0
+- **Version:** 1.2.1
 - **Basis:** Field experience
 - **Domain:** Email Security, Identity Threat Detection & Response (ITDR) & Exchange Online Forensics
 - **Platforms:** Mimecast Email Security, Microsoft Entra ID, Exchange Online (`ExchangeOnlineManagement`), Microsoft Defender for Office 365
@@ -62,12 +62,19 @@ Query recent sign-ins for the affected user (`a.morales@contoso.com`) to identif
 ```powershell
 $upn = "a.morales@contoso.com"
 
-# Inspect recent interactive and non-interactive sign-ins
+# Interactive sign-ins (the v1.0 endpoint returns interactive sign-ins only)
 Get-MgAuditLogSignIn -Filter "userPrincipalName eq '$upn'" -Top 50 |
     Select-Object CreatedDateTime, IpAddress, ClientAppUsed, AppDisplayName,
                   @{N='City';E={$_.Location.City}},
                   @{N='Country';E={$_.Location.CountryOrRegion}},
                   ConditionalAccessStatus,
+                  @{N='Status';E={$_.Status.ErrorCode}} |
+    Format-Table -AutoSize
+
+# Non-interactive sign-ins (token replay shows up here). Requires the beta endpoint:
+# Install-Module Microsoft.Graph.Beta.Reports
+Get-MgBetaAuditLogSignIn -Filter "userPrincipalName eq '$upn' and signInEventTypes/any(t: t eq 'nonInteractiveUser')" -Top 50 |
+    Select-Object CreatedDateTime, IpAddress, AppDisplayName, ResourceDisplayName,
                   @{N='Status';E={$_.Status.ErrorCode}} |
     Format-Table -AutoSize
 
@@ -101,12 +108,14 @@ Get-Mailbox -Identity $upn |
 
 ### Step 3.4: Query Unified Audit Log (UAL) & OAuth App Grants
 Check `Search-UnifiedAuditLog` for rule creation, mailbox modifications, or OAuth application consents performed from the attacker's IP:
+
+> Operation names are matched exactly and some Entra ID operations are stored with a trailing period (for example `Consent to application.`). If a search returns nothing, run it once without `-Operations` and copy the exact names from the `Operations` column.
 ```powershell
 $upn = "a.morales@contoso.com"
 
 Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-14) -EndDate (Get-Date) `
-    -FreeText $upn `
-    -Operations "New-InboxRule", "Set-InboxRule", "UpdateInboxRules", "Set-Mailbox", "Add-OAuth2PermissionGrant", "Consent to application" `
+    -UserIds $upn `
+    -Operations "New-InboxRule", "Set-InboxRule", "UpdateInboxRules", "Set-Mailbox", "Consent to application", "Add delegated permission grant" `
     -ResultSize 100 |
     Select-Object CreationDate, UserIds, Operations, AuditData |
     Format-List
@@ -164,7 +173,8 @@ Remove-MgOauth2PermissionGrant -OAuth2PermissionGrantId "<GrantId>"
 2. **Audit Sent Items & Deleted Items (Blast Radius Check):**
    Verify whether the attacker sent lateral phishing or wire instructions from the compromised mailbox during the session window:
    ```powershell
-   Get-MessageTrace -SenderAddress $upn -StartDate (Get-Date).AddDays(-3) -EndDate (Get-Date) |
+   # Get-MessageTraceV2 replaces the deprecated Get-MessageTrace cmdlet
+   Get-MessageTraceV2 -SenderAddress $upn -StartDate (Get-Date).AddDays(-3) -EndDate (Get-Date) |
        Select-Object Received, RecipientAddress, Subject, Status, FromIP
    ```
 3. **Verify Post-Containment Sign-Ins:**
@@ -176,4 +186,4 @@ Remove-MgOauth2PermissionGrant -OAuth2PermissionGrantId "<GrantId>"
 
 Escalate to Incident Response / Legal & Finance leadership immediately if:
 - `MailItemsAccessed` events in the Unified Audit Log show the attacker accessed sensitive financial, M&A, or legal threads.
-- Outbound `Get-MessageTrace` confirms the attacker replied to external clients or accounting staff with modified payment/ACH instructions.
+- Outbound `Get-MessageTraceV2` confirms the attacker replied to external clients or accounting staff with modified payment/ACH instructions.
