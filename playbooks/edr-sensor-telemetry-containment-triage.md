@@ -1,7 +1,7 @@
 # PB-SEC-003: EDR Sensor Health, Telemetry Loss & Network Containment Validation
 
 - **Document ID:** PB-SEC-003
-- **Version:** 1.0.0
+- **Version:** 1.2.1
 - **Domain:** Security Operations & Incident Response (MDE / CrowdStrike Falcon)
 - **Target OS:** Windows 10 / 11 Enterprise & Windows Server 2016+
 

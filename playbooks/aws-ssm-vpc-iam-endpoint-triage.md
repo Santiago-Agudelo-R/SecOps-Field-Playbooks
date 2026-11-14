@@ -1,7 +1,7 @@
 # PB-CLOUD-004: AWS Systems Manager (SSM), VPC Endpoints & IAM Instance Profile Triage
 
 - **Document ID:** PB-CLOUD-004
-- **Version:** 1.1.1
+- **Version:** 1.2.1
 - **Domain:** Cloud Infrastructure & SecOps (AWS EC2 / Systems Manager / IAM / VPC)
 - **Target OS:** Windows Server 2019/2022 & Amazon Linux 2023 / Ubuntu LTS
 - **Validation:** Self-directed lab (not production-validated)

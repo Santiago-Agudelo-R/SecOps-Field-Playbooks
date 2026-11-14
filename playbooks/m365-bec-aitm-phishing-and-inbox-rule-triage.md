@@ -2,9 +2,11 @@
 
 - **Document ID:** PB-SEC-006
 - **Version:** 1.2.1
-- **Basis:** Field experience
 - **Domain:** Email Security, Identity Threat Detection & Response (ITDR) & Exchange Online Forensics
 - **Platforms:** Mimecast Email Security, Microsoft Entra ID, Exchange Online (`ExchangeOnlineManagement`), Microsoft Defender for Office 365
+- **Validation:** Self-directed lab (not production-validated)
+
+> **Validation status: self-directed lab.** This playbook was built from personal lab work and vendor documentation. It has not yet been validated in a production environment. Feedback and corrections are welcome via Issues.
 
 ---
 

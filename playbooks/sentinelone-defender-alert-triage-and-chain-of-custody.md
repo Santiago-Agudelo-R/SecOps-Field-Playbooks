@@ -1,7 +1,7 @@
 # PB-SOC-005: SentinelOne & Defender XDR Alert Triage, Chain-of-Custody & Executive Reporting
 
 - **Document ID:** PB-SOC-005
-- **Version:** 1.1.1
+- **Version:** 1.2.1
 - **Domain:** SOC Operations, MSSP Co-Management & Legal/Regulated Chain of Custody
 - **Platforms:** SentinelOne Singularity XDR, Microsoft Defender XDR, Microsoft Sentinel, Microsoft 365
 - **Validation:** Self-directed lab (not production-validated)

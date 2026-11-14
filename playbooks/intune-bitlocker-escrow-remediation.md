@@ -1,7 +1,7 @@
 # PB-END-001: Intune MDM Sync & BitLocker Key Escrow Remediation
 
 - **Document ID:** PB-END-001
-- **Version:** 1.0.2
+- **Version:** 1.2.1
 - **Domain:** Endpoint Security & Compliance (Microsoft Intune / Entra ID)
 - **Target OS:** Windows 10 / Windows 11 Enterprise
 

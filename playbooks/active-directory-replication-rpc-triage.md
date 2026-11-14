@@ -1,7 +1,7 @@
 # PB-ID-002: Hybrid AD DS Replication, RPC 1722 & Entra Connect Triage
 
 - **Document ID:** PB-ID-002
-- **Version:** 1.0.0
+- **Version:** 1.2.1
 - **Domain:** Hybrid Identity & Directory Services (Active Directory / Entra Connect)
 - **Target OS:** Windows Server 2019 / 2022 Domain Controllers
 
