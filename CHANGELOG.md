@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-13
+
+### Added
+- `PB-SEC-006` (`playbooks/m365-bec-aitm-phishing-and-inbox-rule-triage.md`): Field-experience incident response runbook for Business Email Compromise (BEC), Adversary-in-the-Middle (AiTM) session cookie theft, Mimecast / Defender for Office 365 phishing triage, hidden Exchange Online Inbox rules (`Get-InboxRule -IncludeHidden`), illicit OAuth grants, and Continuous Access Evaluation (CAE) session revocation (`Revoke-MgUserSignInSession`).
+- `PB-VULN-007` (`playbooks/enterprise-vulnerability-management-kev-sla-triage.md`): Field-experience vulnerability management runbook covering multi-factor CVE prioritization (CVSS v3.1 + CISA KEV + EPSS + asset exposure), PowerShell host patch/UBR verification, SLA exception governance with compensating controls (ISO 27001 `A.8.8` / CIS Control 7 / NIST CSF), and executive KPI reporting (MTTR, SLA compliance, KEV burn-down).
+
 ## [1.1.1] - 2026-11-09
 
 ### Changed
