@@ -92,33 +92,62 @@ Get-MgUserAuthenticationMethod -UserId $upn |
     } | Format-Table -AutoSize
 ```
 
-### Step 3.3: Inspect Inbox Rules (Including Hidden MAPI Rules) & Mailbox Forwarding
-Always include `-IncludeHidden` when auditing a suspected BEC mailbox:
+### Step 3.3: Preserve & Inspect Inbox Rules (Including Hidden MAPI Rules) & Mailbox Forwarding
+Always include `-IncludeHidden` when auditing a suspected BEC mailbox, and **export the raw rule and forwarding objects to hashed JSON evidence files before removing or modifying anything**:
 ```powershell
 $upn = "a.morales@contoso.com"
+$evidenceDir = "C:\IR_Evidence\BEC_$($upn -replace '[^a-zA-Z0-9]', '_')"
+New-Item -ItemType Directory -Path $evidenceDir -Force | Out-Null
+$ts = [DateTime]::UtcNow.ToString("yyyyMMdd_HHmmss")
 
-# 1. Enumerate all Inbox Rules, including hidden rules
-Get-InboxRule -Mailbox $upn -IncludeHidden |
-    Select-Object Name, Enabled, Priority, MoveToFolder, DeleteMessage,
+# 1. Enumerate and preserve all Inbox Rules (including hidden MAPI rules) prior to eradication
+$inboxRules = @(Get-InboxRule -Mailbox $upn -IncludeHidden)
+$rulesJsonPath = Join-Path $evidenceDir "InboxRules_${ts}.json"
+$inboxRules | ConvertTo-Json -Depth 6 | Out-File -FilePath $rulesJsonPath -Encoding utf8
+$rulesHash = (Get-FileHash -LiteralPath $rulesJsonPath -Algorithm SHA256).Hash
+"$($rulesHash.ToLowerInvariant())  InboxRules_${ts}.json" | Out-File -FilePath "$rulesJsonPath.sha256" -Encoding ascii
+
+$inboxRules |
+    Select-Object Name, Identity, Enabled, Priority, MoveToFolder, DeleteMessage,
                   ForwardTo, ForwardAsAttachmentTo, RedirectTo, Description |
     Format-List
 
-# 2. Check mailbox-level SMTP forwarding
-Get-Mailbox -Identity $upn |
+# 2. Preserve and check mailbox-level SMTP forwarding
+$mbx = Get-Mailbox -Identity $upn |
     Select-Object UserPrincipalName, ForwardingAddress, ForwardingSmtpAddress, DeliverToMailboxAndForward
+$mbxJsonPath = Join-Path $evidenceDir "MailboxForwarding_${ts}.json"
+$mbx | ConvertTo-Json -Depth 4 | Out-File -FilePath $mbxJsonPath -Encoding utf8
+$mbx
 ```
 
-### Step 3.4: Query Unified Audit Log (UAL) & OAuth App Grants
-Check `Search-UnifiedAuditLog` for rule creation, mailbox modifications, or OAuth application consents performed from the attacker's IP:
+### Step 3.4: Query Unified Audit Log (UAL) with Pagination & OAuth App Grants
+Check `Search-UnifiedAuditLog` for rule creation, mailbox modifications, or OAuth application consents performed from the attacker's IP.
 
-> Operation names are matched exactly and some Entra ID operations are stored with a trailing period (for example `Consent to application.`). If a search returns nothing, run it once without `-Operations` and copy the exact names from the `Operations` column.
+> **Important (Avoid Silent Truncation):** The default `-ResultSize 100` silently truncates results at 100 rows. Always paginate `Search-UnifiedAuditLog` using `-SessionId` and `-SessionCommand ReturnLargeSet` (up to 5,000 rows per page), and note that operation names are matched exactly (some Entra ID operations are stored with a trailing period, e.g., `Consent to application.`).
 ```powershell
 $upn = "a.morales@contoso.com"
+$sessionId = "BEC_UAL_$([Guid]::NewGuid().ToString('N'))"
+$allAuditRecords = [System.Collections.Generic.List[PSObject]]::new()
 
-Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-14) -EndDate (Get-Date) `
-    -UserIds $upn `
-    -Operations "New-InboxRule", "Set-InboxRule", "UpdateInboxRules", "Set-Mailbox", "Consent to application", "Add delegated permission grant" `
-    -ResultSize 100 |
+do {
+    $page = @(Search-UnifiedAuditLog -StartDate (Get-Date).AddDays(-14) -EndDate (Get-Date) `
+        -UserIds $upn `
+        -Operations "New-InboxRule", "Set-InboxRule", "UpdateInboxRules", "Set-Mailbox", "Consent to application.", "Add delegated permission grant." `
+        -SessionId $sessionId `
+        -SessionCommand ReturnLargeSet `
+        -ResultSize 5000)
+    foreach ($row in $page) {
+        $allAuditRecords.Add($row)
+    }
+} while ($page.Count -gt 0)
+
+$ualRecords = @($allAuditRecords | Sort-Object Identity -Unique)
+$ualJsonPath = Join-Path $evidenceDir "UnifiedAuditLog_${ts}.json"
+$ualRecords | ConvertTo-Json -Depth 6 | Out-File -FilePath $ualJsonPath -Encoding utf8
+$ualHash = (Get-FileHash -LiteralPath $ualJsonPath -Algorithm SHA256).Hash
+"$($ualHash.ToLowerInvariant())  UnifiedAuditLog_${ts}.json" | Out-File -FilePath "$ualJsonPath.sha256" -Encoding ascii
+
+$ualRecords |
     Select-Object CreationDate, UserIds, Operations, AuditData |
     Format-List
 
@@ -134,12 +163,14 @@ Get-MgOauth2PermissionGrant -Filter "principalId eq '$($userObj.Id)'" |
 
 Execute containment steps in order so the attacker cannot watch the remediation from an active OWA session or receive password reset notifications:
 
-### Step 4.1: Revoke Active Sessions & Block Sign-In
+### Step 4.1: Block Sign-In & Revoke Refresh Tokens
+> **Access Token Lifetime & CAE Note:** `Revoke-MgUserSignInSession` invalidates refresh tokens, not already-issued OAuth access tokens. For non-CAE (Continuous Access Evaluation) clients or third-party apps, an existing access token can remain valid until its natural expiration (typically ~60 minutes). Disabling the account first (`AccountEnabled = $false`) triggers a CAE critical event for CAE-capable Microsoft 365 workloads (Exchange Online, SharePoint, Teams) to reject active access tokens in near real time.
+
 ```powershell
 $upn = "a.morales@contoso.com"
 $userObj = Get-MgUser -UserId $upn
 
-# Temporarily block sign-in and revoke all refresh/session tokens
+# Temporarily block sign-in (triggers CAE revocation for Exchange/SharePoint/Teams) and revoke refresh tokens
 Update-MgUser -UserId $userObj.Id -AccountEnabled:$false
 Revoke-MgUserSignInSession -UserId $userObj.Id
 ```
