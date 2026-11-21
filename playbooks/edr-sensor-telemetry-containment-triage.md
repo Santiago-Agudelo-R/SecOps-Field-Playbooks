@@ -52,28 +52,36 @@ fltmc filters | Select-String -Pattern "WdFilter|csagent|MsSecFlt"
 
 ### Step 3.2: Audit Microsoft Defender for Endpoint (MDE) Onboarding & Cloud Connectivity
 ```powershell
-# Check MDE onboarding registry state (OrgId must be populated)
+# Check MDE onboarding registry state (OnboardingState 1 = onboarded; OrgId must be populated)
 Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows Advanced Threat Protection\Status" -ErrorAction SilentlyContinue |
     Select-Object OnboardingState, OrgId, LastConnected
-
-# Run the built-in MDE Client Analyzer connectivity check
-& "$env:ProgramFiles\Windows Defender Advanced Threat Protection\MsSense.exe" -version
 ```
-Inspect the `SENSE` Operational Event Log for cloud connectivity errors:
+Test connectivity to the Defender for Endpoint service URLs with the **MDE Client Analyzer**, a separate download from Microsoft ([aka.ms/mdeanalyzer](https://aka.ms/mdeanalyzer)); it can also be collected through Live Response:
+```cmd
+C:\Tools\MDEClientAnalyzer\MDEClientAnalyzer.cmd
+```
+Review `MDEClientAnalyzerResult.txt` for failed service URLs and proxy discovery problems.
+
+Inspect the `SENSE` Operational log for connection events. Event 4 is informational, so filter by ID rather than by level:
 ```powershell
-Get-WinEvent -LogName "Microsoft-Windows-SENSE/Operational" -MaxEvents 20 |
-    Where-Object { $_.LevelDisplayName -in @('Error', 'Warning') } |
+Get-WinEvent -FilterHashtable @{ LogName = 'Microsoft-Windows-SENSE/Operational'; Id = 4, 5 } -MaxEvents 20 |
     Select-Object TimeCreated, Id, Message
 ```
-- **Event ID 4:** Successful cloud connection established.
-- **Event ID 5 / 401:** Telemetry upload failed (TLS inspection or firewall block).
+- **Event ID 4:** The service contacted the Defender for Endpoint server (healthy).
+- **Event ID 5:** The service failed to connect to the server; check proxy, firewall and TLS inspection for the URL named in the message.
 
 ### Step 3.3: Audit CrowdStrike Falcon Sensor Health & RFM State
 ```powershell
-# Verify sensor version, Agent ID (AID), and Reduced Functionality Mode (RFM)
-reg query "HKLM\SYSTEM\CurrentControlSet\Services\CSAgent\Sim" /v CU
+# Driver service state (the kernel component of the Falcon sensor)
 sc.exe query csagent
+
+# Customer ID (CID) the sensor was installed with: confirms the host reports to the right tenant
+reg query "HKLM\SYSTEM\CurrentControlSet\Services\CSAgent\Sim" /v CU
+
+# Installed sensor version, to compare with the sensor update policy
+(Get-Item "$env:ProgramFiles\CrowdStrike\CSFalconService.exe").VersionInfo.ProductVersion
 ```
+- Agent ID (AID), Reduced Functionality Mode (RFM) state and last-seen time are confirmed in the Falcon console (**Host management**), not from a local registry value.
 - Verify outbound TLS connectivity on TCP `443` to the cloud sink endpoints without SSL decryption:
 ```powershell
 Test-NetConnection -ComputerName "ts01-b.cloudsink.net" -Port 443
@@ -106,13 +114,29 @@ EDR sensors enforce strict certificate pinning. If a corporate firewall or secur
 2. Push the certified N-1 or N sensor build update policy from the Falcon / Intune console.
 
 ### Scenario C: Emergency Local Host Isolation (When EDR Cloud Channel is Unreachable)
-If an active compromise is detected on `192.0.2.45` and the host cannot receive cloud containment commands, enforce immediate Windows Firewall containment via Live Response or WinRM while keeping the management jump host (`192.0.2.100`) reachable:
+If an active compromise is detected on `192.0.2.45` and the host cannot receive cloud containment commands, enforce Windows Firewall containment via Live Response or WinRM while keeping the management jump host (`192.0.2.100`) reachable.
+
+Changing only the default action is **not** containment: every allow rule that is already enabled keeps working (Windows ships many, and software adds more). Save the current state, disable the existing allow rules, then allow only the jump host:
 ```powershell
-# Block all inbound and outbound traffic except management jump host (192.0.2.100)
-Set-NetFirewallProfile -Profile Domain,Private,Public -DefaultInboundAction Block -DefaultOutboundAction Block
-New-NetFirewallRule -DisplayName "IR-Emergency-Allow-JumpHost-In" -Direction Inbound -RemoteAddress 192.0.2.100 -Action Allow
-New-NetFirewallRule -DisplayName "IR-Emergency-Allow-JumpHost-Out" -Direction Outbound -RemoteAddress 192.0.2.100 -Action Allow
+$irDir = Join-Path $env:ProgramData 'SecOps\IR'
+New-Item -ItemType Directory -Path $irDir -Force | Out-Null
+
+# 1. Record the current state so containment can be reversed exactly
+Get-NetFirewallProfile | Export-Clixml (Join-Path $irDir 'fw-profiles.xml')
+$enabledAllow = Get-NetFirewallRule -Enabled True -Action Allow -PolicyStore ActiveStore
+$enabledAllow | Select-Object Name, DisplayName, Direction, PolicyStoreSource | Export-Csv (Join-Path $irDir 'fw-allow-rules-disabled.csv') -NoTypeInformation
+
+# 2. Allow only the management jump host (created first so the session survives)
+New-NetFirewallRule -DisplayName 'IR-Emergency-Allow-JumpHost-In' -Direction Inbound -RemoteAddress 192.0.2.100 -Action Allow | Out-Null
+New-NetFirewallRule -DisplayName 'IR-Emergency-Allow-JumpHost-Out' -Direction Outbound -RemoteAddress 192.0.2.100 -Action Allow | Out-Null
+
+# 3. Disable every pre-existing local allow rule and block by default in all profiles
+Get-NetFirewallRule -Enabled True -Action Allow -PolicyStore PersistentStore |
+    Where-Object { $_.DisplayName -notlike 'IR-Emergency-*' } | Disable-NetFirewallRule
+Set-NetFirewallProfile -Profile Domain,Private,Public -Enabled True -DefaultInboundAction Block -DefaultOutboundAction Block
 ```
+- Allow rules delivered by Group Policy or Intune (`PolicyStoreSource` other than `PersistentStore` in the CSV) cannot be disabled locally and stay active. Review the CSV; if any remain, contain at the switch/VLAN or with the EDR once it is reachable.
+- **Release:** re-enable the rules listed in `fw-allow-rules-disabled.csv` (`Enable-NetFirewallRule -Name <Name>`), restore the profile defaults from `fw-profiles.xml`, and remove the two `IR-Emergency-*` rules.
 
 ---
 
@@ -122,6 +146,11 @@ New-NetFirewallRule -DisplayName "IR-Emergency-Allow-JumpHost-Out" -Direction Ou
    From a peer workstation on `192.0.2.0/24`, confirm SMB (`445`), RDP (`3389`), and WinRM (`5985`) connections to the isolated host (`192.0.2.45`) time out:
    ```powershell
    Test-NetConnection -ComputerName 192.0.2.45 -Port 445
+   ```
+   From the contained host itself, confirm outbound traffic is blocked while the jump host still answers:
+   ```powershell
+   Test-NetConnection -ComputerName 198.51.100.24 -Port 443   # expected: TcpTestSucceeded False
+   Test-NetConnection -ComputerName 192.0.2.100 -Port 5985    # expected: TcpTestSucceeded True
    ```
 2. **Volatile Forensic Collection:**
    While the host is contained, execute [`IR-Triage-Collector`](https://github.com/Santiago-Agudelo-R/IR-Triage-Collector) (`Invoke-IRTriage.ps1 -HashBinaries`) over the active RTR / Live Response session and verify the `.sha256` sidecar hash before releasing containment.

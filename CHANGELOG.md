@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.3] - 2026-11-21
+
+### Fixed
+- `PB-SEC-003`: Emergency firewall containment only changed the default action, so every allow rule already enabled on the host kept working. The procedure now saves the firewall state, allows the jump host, disables existing local allow rules, documents that Group Policy and Intune rules cannot be disabled locally, and includes release and outbound verification steps.
+- `PB-SEC-003`: `MsSense.exe -version` was described as the MDE Client Analyzer; the playbook now uses the actual Client Analyzer (`MDEClientAnalyzer.cmd`). The SENSE log query filters by event ID, because the healthy event 4 is informational and was hidden by the error/warning filter; the undocumented event 401 was removed.
+- `PB-SEC-003`: The CrowdStrike `CU` registry value is the Customer ID (CID), not the sensor version, AID or RFM state. The step now reads the CID and the installed version, and points to the Falcon console for AID and RFM.
+
+## [1.2.2] - 2026-11-21
+
+### Fixed
+- `PB-SEC-006`: Inbox rules and mailbox forwarding are exported to JSON with a SHA256 file before any rule is removed, the unified audit log search is paginated instead of stopping at 100 results, and the access-token lifetime after session revocation (and the role of Continuous Access Evaluation) is documented.
+
 ## [1.2.1] - 2026-11-13
 
 ### Fixed
